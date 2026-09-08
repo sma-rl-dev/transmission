@@ -1,0 +1,39 @@
+services:
+  transmission:
+    build:
+      context: .
+      dockerfile: Dockerfile.tester-env
+    image: ${IMAGE_TAG:-tester-env-transmission:dev}
+    network_mode: host
+    environment:
+      TRANSMISSION_WEB_HOME: /src/build/web/public_html
+    volumes:
+      - transmission-data:/data
+    command:
+      - --foreground
+      - --config-dir
+      - /data/config
+      - --download-dir
+      - /data/downloads
+      - --rpc-bind-address
+      - 0.0.0.0
+      - --port
+      - ${TESTER_ENV_PORT:-19091}
+      - --allowed
+      - "*"
+      - --auth
+      - --username
+      - ${TESTER_ENV_USERNAME:-tester}
+      - --password
+      - ${TESTER_ENV_PASSWORD:-tester-env-password}
+      - --no-dht
+      - --no-lpd
+      - --no-portmap
+      - --bind-address-ipv4
+      - 127.0.0.1
+      - --bind-address-ipv6
+      - ::1
+      - --paused
+
+volumes:
+  transmission-data:

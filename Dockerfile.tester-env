@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+FROM node:20-bookworm
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential ccache cmake curl git libcurl4-openssl-dev libevent-dev libssl-dev \
+    ninja-build npm pkg-config && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/ccache \
+    --mount=type=cache,target=/root/.npm \
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+      -DENABLE_GTK=OFF -DENABLE_QT=OFF -DENABLE_MAC=OFF -DENABLE_TESTS=OFF -DINSTALL_DOC=OFF \
+      -DREBUILD_WEB=ON && cmake --build build --target transmission-daemon transmission-web
+
+EXPOSE 9091
+ENTRYPOINT ["/src/build/daemon/transmission-daemon"]

@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE_NAME="${IMAGE_TAG:-tester-env-transmission:dev}"
+RUN_ID=""
+PORT="19091"
+USERNAME="${TESTER_ENV_USERNAME:-tester}"
+PASSWORD="${TESTER_ENV_PASSWORD:-tester-env-password}"
+
+usage() {
+  printf 'Usage: %s {deploy|seed|verify|reset|stop|status|logs|help} [--run-id ID] [--port PORT]\n' "$0"
+}
+
+command="${1:-help}"
+shift || true
+while (($#)); do
+  case "$1" in
+    --run-id) RUN_ID="-$2"; shift 2 ;;
+    --port) PORT="$2"; shift 2 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+project="tester-env-transmission${RUN_ID}"
+compose=(docker compose --project-name "$project" -f "$(dirname "$0")/docker-compose.tester-env.yml")
+export IMAGE_TAG="$IMAGE_NAME" TESTER_ENV_PORT="$PORT" TESTER_ENV_USERNAME="$USERNAME" TESTER_ENV_PASSWORD="$PASSWORD"
+
+case "$command" in
+  deploy)
+    printf '==> Building and starting Transmission at http://localhost:%s/transmission/web/\n' "$PORT"
+    "${compose[@]}" up --build -d
+    for _ in {1..30}; do
+      if curl --fail --silent --user "$USERNAME:$PASSWORD" "http://localhost:$PORT/transmission/web/" >/dev/null; then
+        printf '==> Ready: %s / %s\n' "$USERNAME" "$PASSWORD"
+        exit 0
+      fi
+      sleep 1
+    done
+    "${compose[@]}" logs
+    exit 1
+    ;;
+  seed)
+    printf '==> Adding deterministic local transfer fixtures\n'
+    "${compose[@]}" exec -T transmission node /src/tester-env-fixtures/seed.js "http://127.0.0.1:$PORT/transmission/rpc" "$USERNAME" "$PASSWORD"
+    ;;
+  verify)
+    printf '==> Verifying deterministic transfer fixtures\n'
+    "${compose[@]}" exec -T transmission node /src/tester-env-fixtures/verify.js "http://127.0.0.1:$PORT/transmission/rpc" "$USERNAME" "$PASSWORD"
+    ;;
+  reset) "${compose[@]}" down -v ;;
+  stop) "${compose[@]}" down ;;
+  status) "${compose[@]}" ps ;;
+  logs) "${compose[@]}" logs --tail=100 ;;
+  help) usage ;;
+  *) usage; exit 2 ;;
+esac

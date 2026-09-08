@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "app": "transmission",
+  "requirements": {
+    "release-transfer-rows": {
+      "status": "present",
+      "evidence": "Three fixed Release Assets transfers are shown: Arrival Manifest.pdf, Product Research Archive.zip, and Design Assets 2026-09.tar."
+    },
+    "mixed-transfer-progress": {
+      "status": "present",
+      "evidence": "The rows have exactly 100%, 50%, and 0% completed data respectively."
+    },
+    "transfer-status-filters": {
+      "status": "present",
+      "evidence": "Arrival Manifest.pdf is seeding, Product Research Archive.zip is downloading without peers, and Design Assets 2026-09.tar is stopped."
+    }
+  }
+}
