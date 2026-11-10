@@ -28,6 +28,13 @@ export IMAGE_TAG="$IMAGE_NAME" TESTER_ENV_PORT="$PORT" TESTER_ENV_USERNAME="$USE
 case "$command" in
   deploy)
     printf '==> Building and starting Transmission at http://localhost:%s/transmission/web/\n' "$PORT"
+    # The deployment tooling is extracted into a plain `git worktree add`, which
+    # leaves the pinned gitlinks under third-party/ absent. CMake then cannot
+    # include GetGitRevisionDescription, and the vendored libpsl needs its own
+    # `list` submodule (public_suffix_list.dat) to build. Fetch exactly the
+    # commits pinned by the checked-out source, nested ones included
+    # (deterministic; no branch tips).
+    git -C "$(dirname "$0")" submodule update --init --recursive -- third-party
     "${compose[@]}" up --build -d
     for _ in {1..30}; do
       if curl --fail --silent --user "$USERNAME:$PASSWORD" "http://localhost:$PORT/transmission/web/" >/dev/null; then
